@@ -1,0 +1,27 @@
+.vscode/
+
+# Python
+backend/venv/
+__pycache__/
+*.pyc
+
+# React
+frontend/node_modules/
+frontend/dist/
+
+# Logs
+logs
+*.log
+
+# Environment files
+.env
+
+# VS Code
+.vscode/*
+!.vscode/extensions.json
+
+# IDE
+.idea
+
+# OS
+.DS_Store
