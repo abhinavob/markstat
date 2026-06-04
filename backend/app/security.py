@@ -3,12 +3,19 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from jose import JWTError, jwt
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import ExpiredSignatureError, JWTError, jwt
 from passlib.context import CryptContext
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from .config import get_settings
+from .database import get_db
+from .models import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def hash_password(password: str) -> str:
@@ -40,3 +47,60 @@ def get_token_subject(token: str) -> str | None:
 		return subject if isinstance(subject, str) else None
 	except JWTError:
 		return None
+
+
+def extract_bearer_token(credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme)) -> str:
+	if credentials is None or not credentials.credentials:
+		raise HTTPException(
+			status_code=status.HTTP_401_UNAUTHORIZED,
+			detail="Missing bearer token",
+			headers={"WWW-Authenticate": "Bearer"},
+		)
+	return credentials.credentials
+
+
+def verify_jwt_token(token: str) -> dict[str, Any]:
+	try:
+		return decode_access_token(token)
+	except ExpiredSignatureError as exc:
+		raise HTTPException(
+			status_code=status.HTTP_401_UNAUTHORIZED,
+			detail="Token has expired",
+			headers={"WWW-Authenticate": "Bearer"},
+		) from exc
+	except JWTError as exc:
+		raise HTTPException(
+			status_code=status.HTTP_401_UNAUTHORIZED,
+			detail="Invalid token",
+			headers={"WWW-Authenticate": "Bearer"},
+		) from exc
+
+
+def get_current_user(token: str = Depends(extract_bearer_token), db: Session = Depends(get_db)) -> User:
+	payload = verify_jwt_token(token)
+	subject = payload.get("sub")
+	if subject is None:
+		raise HTTPException(
+			status_code=status.HTTP_401_UNAUTHORIZED,
+			detail="Invalid token payload",
+			headers={"WWW-Authenticate": "Bearer"},
+		)
+
+	try:
+		user_id = int(subject)
+	except (TypeError, ValueError) as exc:
+		raise HTTPException(
+			status_code=status.HTTP_401_UNAUTHORIZED,
+			detail="Invalid token subject",
+			headers={"WWW-Authenticate": "Bearer"},
+		) from exc
+
+	user = db.scalar(select(User).where(User.id == user_id))
+	if user is None:
+		raise HTTPException(
+			status_code=status.HTTP_401_UNAUTHORIZED,
+			detail="User not found for token",
+			headers={"WWW-Authenticate": "Bearer"},
+		)
+
+	return user

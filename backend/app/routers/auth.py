@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import User
 from ..schemas import AuthResponse, Token, UserCreate, UserLogin, UserRead
-from ..security import create_access_token, hash_password, verify_password
+from ..security import create_access_token, get_current_user, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -44,3 +44,8 @@ def login_user(payload: UserLogin, db: Session = Depends(get_db)) -> AuthRespons
 		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
 
 	return _build_auth_response(user)
+
+
+@router.get("/me", response_model=UserRead)
+def get_me(current_user: User = Depends(get_current_user)) -> UserRead:
+	return UserRead.model_validate(current_user)
