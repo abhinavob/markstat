@@ -12,6 +12,9 @@ class Settings:
 		self.database_url = self._build_database_url()
 		self.sqlalchemy_echo = self._get_bool("SQLALCHEMY_ECHO", default=False)
 		self.sqlalchemy_pool_pre_ping = self._get_bool("SQLALCHEMY_POOL_PRE_PING", default=True)
+		self.jwt_secret_key = os.getenv("JWT_SECRET_KEY", "change-me-in-production")
+		self.jwt_algorithm = os.getenv("JWT_ALGORITHM", "HS256")
+		self.access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 
 	def _build_database_url(self) -> str:
 		database_url = os.getenv("DATABASE_URL")
