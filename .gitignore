@@ -4,6 +4,7 @@
 backend/venv/
 __pycache__/
 *.pyc
+storage/
 
 # React
 frontend/node_modules/

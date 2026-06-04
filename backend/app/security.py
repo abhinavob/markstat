@@ -15,7 +15,11 @@ from .database import get_db
 from .models import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-bearer_scheme = HTTPBearer(auto_error=False)
+bearer_scheme = HTTPBearer(
+	auto_error=False,
+	scheme_name="BearerAuth",
+	description="JWT bearer token in the format: Bearer <token>",
+)
 
 
 def hash_password(password: str) -> str:

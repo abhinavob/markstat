@@ -15,6 +15,7 @@ class Settings:
 		self.jwt_secret_key = os.getenv("JWT_SECRET_KEY", "change-me-in-production")
 		self.jwt_algorithm = os.getenv("JWT_ALGORITHM", "HS256")
 		self.access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+		self.upload_storage_dir = os.getenv("UPLOAD_STORAGE_DIR", os.path.join("storage", "uploads"))
 
 	def _build_database_url(self) -> str:
 		database_url = os.getenv("DATABASE_URL")
