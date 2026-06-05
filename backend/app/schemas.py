@@ -99,3 +99,15 @@ class AnalyticsDistributionResponse(BaseModel):
 	metric: str
 	bucket_size: int
 	distribution: dict[str, int]
+
+
+class ExamListItem(BaseModel):
+    id: int
+    title: str
+    subject: str | None
+    filename: str
+    uploaded_at: datetime
+
+
+class ExamListResponse(BaseModel):
+    exams: list[ExamListItem]
