@@ -8,8 +8,8 @@ MarkStat is a full-stack application for analyzing exam results and student perf
 
 **Stack:**
 - **Backend:** Python 3.x with FastAPI, SQLAlchemy ORM, PostgreSQL
-- **Frontend:** React 19 with Vite, Tailwind CSS
-- **Architecture:** Monorepo with separate backend and frontend directories
+- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, React Router v7, Recharts
+- **Architecture:** Monorepo with separate `backend/` and `frontend/` directories
 
 ## Getting Started
 
@@ -69,6 +69,7 @@ curl http://localhost:8000/health
 
 ### Frontend
 - **Lint:** `npm run lint`
+- **Type check:** `npm run typecheck`
 - **Build:** `npm run build`
 - **Preview production build:** `npm run preview`
 
@@ -106,11 +107,41 @@ backend/app/
 ### Frontend Structure
 ```
 frontend/src/
-├── main.jsx             # React app entry point
-├── App.jsx              # Root component (currently stub)
-├── App.css              # Styles
-└── index.css            # Global styles
+├── types/api.ts              # All API request/response TypeScript types
+├── api/                      # API integration layer (all fetch calls go through here)
+│   ├── client.ts             # Base fetch wrapper: auth header injection, error handling, 401 auto-logout
+│   ├── auth.ts               # login(), register(), getMe()
+│   ├── exams.ts              # listExams()
+│   ├── uploads.ts            # analyzeUpload(), importResults()
+│   └── analytics.ts          # getSummary(), getRankings(), getDistribution()
+├── context/AuthContext.tsx   # Auth state (user + token), persisted to localStorage
+├── hooks/
+│   ├── useAuth.ts            # Shorthand for useContext(AuthContext)
+│   ├── useExams.ts           # Fetches exam list with loading/error state
+│   ├── useExamAnalytics.ts   # Parallel-fetches summary + rankings + distribution
+│   └── useUploadWizard.ts    # Upload wizard state machine (select → map → done)
+├── router/
+│   ├── AppRouter.tsx         # All route definitions, wraps AuthProvider + BrowserRouter
+│   └── ProtectedRoute.tsx    # Redirects to /login if no token
+├── components/
+│   ├── layout/               # AppLayout (top nav + content), TopNav, AuthLayout
+│   ├── ui/                   # Button, Input, Card, Spinner, Badge, StatCard, ErrorMessage
+│   ├── exam/                 # ExamCard, ExamEmptyState
+│   └── upload/               # FileDropzone, PreviewTable, ColumnMappingForm
+├── pages/                    # LoginPage, RegisterPage, DashboardPage, UploadPage, ExamDetailPage
+├── App.tsx                   # Renders AppRouter
+├── main.tsx                  # React entry point
+└── index.css                 # Tailwind CSS v4 import
 ```
+
+**Routes:**
+- `/login`, `/register` — public, wrapped in `AuthLayout` (centered card)
+- `/dashboard` — exam list grid; "Upload Exam" button navigates to `/upload`
+- `/upload` — 3-step wizard: select file → map columns → done
+- `/exams/:examId` — analytics view: 4 stat cards, distribution bar chart, rankings table
+- `*` — redirects to `/dashboard`
+
+**API proxy:** Vite dev server proxies `/api/*` → `http://localhost:8000`. The `client.ts` base URL is `/api`, so no hardcoded localhost and no CORS issues during development (`vite.config.ts` → `server.proxy`).
 
 ## Data Flow: File Import Pipeline
 
@@ -187,7 +218,9 @@ UPLOAD_STORAGE_DIR=storage/uploads
 
 ## Notes
 
-- No CORS configured; frontend/backend on same origin or adjust if needed
-- File storage is ephemeral (not cloud-backed); consider S3 for production
-- Alembic migrations in `alembic/versions/` track schema changes
-- Frontend UI is minimal placeholder; main development is backend APIs
+- **CORS:** Handled via Vite proxy during development — no CORS middleware needed on the backend in dev. For production, configure FastAPI CORS or serve from same origin.
+- **Exam metadata on detail page:** `ExamDetailPage` reads exam title/subject from React Router location state (passed by `ExamCard`). On direct URL access or refresh, it falls back to calling `GET /exams` and finding by ID.
+- **Analytics metric:** The `metric` query param defaults to `"total"`. Users can type any score column name into the metric input on the detail page to view per-subject analytics.
+- **No `GET /exams/:id` endpoint:** The backend only exposes `GET /exams` (list). If a dedicated single-exam endpoint is added later, update `ExamDetailPage` to use it on the fallback path.
+- File storage is ephemeral (not cloud-backed); consider S3 for production.
+- Alembic migrations in `alembic/versions/` track schema changes.
