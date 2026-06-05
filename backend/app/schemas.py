@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
@@ -68,3 +69,32 @@ class ImportResultResponse(BaseModel):
 	imported_count: int
 	skipped_count: int
 	total_rows: int
+
+
+class AnalyticsSummaryResponse(BaseModel):
+	exam_id: int
+	metric: str
+	student_count: int
+	average_marks: Decimal
+	highest_marks: Decimal
+	lowest_marks: Decimal
+
+
+class RankingEntry(BaseModel):
+	rank: int
+	student_id: str
+	student_name: str | None
+	marks: Decimal
+
+
+class AnalyticsRankingsResponse(BaseModel):
+	exam_id: int
+	metric: str
+	rankings: list[RankingEntry]
+
+
+class AnalyticsDistributionResponse(BaseModel):
+	exam_id: int
+	metric: str
+	bucket_size: int
+	distribution: dict[str, int]
