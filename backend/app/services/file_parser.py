@@ -59,27 +59,52 @@ def _extract_xlsx(file_path: Path, sheet_name: str | None = None) -> ParsedTabul
 
 def _extract_pdf(file_path: Path) -> ParsedTabularFile:
 	with pdfplumber.open(file_path) as pdf:
+		combined_lines: list[str] = []
+		headers: list[str] = []
+		rows: list[dict[str, Any]] = []
+		selected_source = ""
+
 		for page_index, page in enumerate(pdf.pages, start=1):
 			tables = page.extract_tables() or []
 			for table_index, table in enumerate(tables, start=1):
-				headers, data_rows = _extract_rows_from_table(table)
-				if headers and data_rows:
-					return ParsedTabularFile(
-						file_type="pdf",
-						sheet_names=[],
-						selected_source=f"Page {page_index}, Table {table_index}",
-						columns=headers,
-						rows=data_rows,
-					)
+				normalized_table = [row for row in table if _row_has_values(row)]
+				if not normalized_table:
+					continue
+
+				if not headers:
+					headers, data_rows = _extract_rows_from_table(normalized_table)
+					if headers and data_rows:
+						selected_source = f"Page {page_index}, Table {table_index}"
+						rows.extend(data_rows)
+						continue
+				else:
+					data_rows = _extract_continuation_rows(normalized_table, headers)
+					if data_rows:
+						if not selected_source:
+							selected_source = f"Page {page_index}, Table {table_index}"
+						rows.extend(data_rows)
 
 			text = page.extract_text() or ""
-			headers, data_rows = _extract_rows_from_text(text)
-			if headers and data_rows:
+			if text.strip():
+				combined_lines.extend(line.strip() for line in text.splitlines() if line.strip())
+
+		if headers and rows:
+			return ParsedTabularFile(
+				file_type="pdf",
+				sheet_names=[],
+				selected_source=selected_source or "PDF table",
+				columns=headers,
+				rows=rows,
+			)
+
+		if combined_lines:
+			extracted_headers, data_rows = _extract_rows_from_text("\n".join(combined_lines))
+			if extracted_headers and data_rows:
 				return ParsedTabularFile(
 					file_type="pdf",
 					sheet_names=[],
-					selected_source=f"Page {page_index}",
-					columns=headers,
+					selected_source="PDF text",
+					columns=extracted_headers,
 					rows=data_rows,
 				)
 
@@ -112,6 +137,17 @@ def _extract_rows_from_table(table: list[list[Any]] | None) -> tuple[list[str], 
 			]
 			return headers, data_rows
 	return [], []
+
+
+def _extract_continuation_rows(table: list[list[Any]], headers: list[str]) -> list[dict[str, Any]]:
+	rows: list[dict[str, Any]] = []
+	for raw_row in table:
+		if not _row_has_values(raw_row):
+			continue
+		if _row_matches_headers(raw_row, headers):
+			continue
+		rows.append(_row_to_dict(headers, raw_row))
+	return rows
 
 
 def _extract_rows_from_text(text: str) -> tuple[list[str], list[dict[str, Any]]]:
@@ -163,6 +199,13 @@ def _row_to_dict(headers: list[str], row: Any) -> dict[str, Any]:
 		value = row[index] if index < len(row) else None
 		row_dict[header] = _json_safe_value(value)
 	return row_dict
+
+
+def _row_matches_headers(row: Any, headers: list[str]) -> bool:
+	if len(row or []) < len(headers):
+		return False
+	row_labels = [str(cell).strip() if cell not in (None, "") else "" for cell in row[: len(headers)]]
+	return row_labels == headers
 
 
 def _json_safe_value(value: Any) -> Any:

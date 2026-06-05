@@ -79,6 +79,7 @@ async def analyze_uploaded_file(db: Session, user: User, upload: UploadFile) -> 
 		columns=parsed_file.columns,
 		preview_rows=parsed_file.preview_rows,
 		selected_source=parsed_file.selected_source,
+		total_rows=len(parsed_file.rows),
 	)
 
 

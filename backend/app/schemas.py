@@ -46,6 +46,7 @@ class UploadAnalysisResponse(BaseModel):
 	columns: list[str] = Field(default_factory=list)
 	preview_rows: list[dict[str, Any]] = Field(default_factory=list)
 	selected_source: str | None = None
+	total_rows: int
 
 
 class ColumnMappingRequest(BaseModel):
