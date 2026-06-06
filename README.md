@@ -18,23 +18,47 @@ A full-stack web application for uploading exam results, parsing student scores,
 | Frontend | React 19, TypeScript, Vite, Tailwind CSS v4, Recharts |
 | File Parsing | pdfplumber (PDF), openpyxl (XLSX) |
 | Auth | JWT via python-jose, bcrypt password hashing |
+| Containers | Docker, Docker Compose |
 
-## Prerequisites
+## Getting Started
+
+### Option A: Docker (recommended)
+
+Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+
+```bash
+git clone <repo-url>
+cd MarkStat
+docker compose up
+```
+
+- Frontend: http://localhost:5173
+- Backend: http://localhost:8000
+
+Database migrations run automatically on every startup — no manual setup needed.
+
+To reset the database:
+
+```bash
+docker compose down --volumes && docker compose up
+```
+
+### Option B: Local setup
+
+#### Prerequisites
 
 - Python 3.x with pip
 - Node.js and npm
 - PostgreSQL
 
-## Getting Started
-
-### 1. Clone the repo
+#### 1. Clone the repo
 
 ```bash
 git clone <repo-url>
 cd MarkStat
 ```
 
-### 2. Backend setup
+#### 2. Backend setup
 
 ```bash
 cd backend
@@ -68,16 +92,16 @@ Run database migrations:
 python -m alembic upgrade head
 ```
 
-### 3. Frontend setup
+#### 3. Frontend setup
 
 ```bash
 cd frontend
 npm install
 ```
 
-## Running the App
+#### 4. Run the app
 
-Start both servers (in separate terminals):
+Start both servers in separate terminals:
 
 ```bash
 # Terminal 1 — backend (from backend/ with venv active)

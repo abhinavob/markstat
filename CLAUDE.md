@@ -13,12 +13,32 @@ MarkStat is a full-stack application for analyzing exam results and student perf
 
 ## Getting Started
 
-### Prerequisites
+### Option A: Docker (recommended)
+
+Requires Docker Desktop. Runs Postgres, backend, and frontend with a single command — no local Python or Node needed.
+
+```bash
+docker compose up
+```
+
+- Frontend: http://localhost:5173
+- Backend: http://localhost:8000
+
+The backend entrypoint (`backend/entrypoint.sh`) automatically runs `alembic upgrade head` before starting uvicorn, so the database is always migrated on startup.
+
+To reset the database (wipe volume and re-migrate):
+```bash
+docker compose down --volumes && docker compose up
+```
+
+### Option B: Local Setup
+
+#### Prerequisites
 - Python 3.x with pip
 - Node.js and npm
 - PostgreSQL database (local or remote)
 
-### Backend Setup
+#### Backend Setup
 ```bash
 # From backend directory
 cd backend
@@ -30,14 +50,14 @@ pip install -r requirements.txt
 python -m alembic upgrade head  # Run migrations
 ```
 
-### Frontend Setup
+#### Frontend Setup
 ```bash
 # From frontend directory
 cd frontend
 npm install
 ```
 
-## Running the Application
+## Running the Application (local)
 
 ### Backend
 ```bash
